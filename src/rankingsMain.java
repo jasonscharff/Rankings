@@ -2,6 +2,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Scanner;
 import java.io.*;
 
@@ -19,8 +20,11 @@ public class rankingsMain
 	public static void main(String[] args) 
 	{
 		ArrayList<Object>fileResponses = readFile();
-		DirectedGraph g = (DirectedGraph) fileResponses.get(0);
-		System.out.println(g.topSort());
+		DirectedGraph graph = (DirectedGraph) fileResponses.get(0);
+		List<String> sortedGraph = graph.topSort();
+		System.out.println(sortedGraph);
+		sortedGraph = fixTies(sortedGraph, (HashMap<String, Integer>)fileResponses.get(1), (HashMap<String, Integer>)fileResponses.get(2));
+		System.out.println(sortedGraph);
 		
 //		if (graph != null)
 //		{
@@ -34,10 +38,10 @@ public class rankingsMain
 	}
 
 	
-	public static ArrayList<String> fixTies (DirectedAcyclicGraph <String, DefaultEdge> graph, HashMap<String, Integer> winCount, HashMap<String, Integer> totalScore)
+	public static ArrayList<String> fixTies (List<String> topSorted, HashMap<String, Integer> winCount, HashMap<String, Integer> totalScore)
 	{
 		ArrayList<String> finalList = new ArrayList<String>();
-		Iterator<String> it = graph.iterator();
+		Iterator<String> it = topSorted.iterator();
 		String next = it.next();
 		while (it.hasNext())
 		{
@@ -66,7 +70,6 @@ public class rankingsMain
 			finalList = addArrayContents(finalList, group);
 			
 		}
-		Collections.reverse(finalList);
 		return finalList;
 	
 	}
@@ -79,6 +82,7 @@ public class rankingsMain
 			toSort.add(node);
 		}
 		Collections.sort(toSort);
+		Collections.reverse(toSort);
 		ArrayList<String> toReturn = new ArrayList<String>();
 		for (teamNode node : toSort)
 		{

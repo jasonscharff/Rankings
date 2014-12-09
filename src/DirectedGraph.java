@@ -18,12 +18,8 @@ public class DirectedGraph {
 	{
 		adjacencyMatrix = new HashMap<String, HashMap<String, Boolean>>();
 	}
-
-	public void addVertex(String v)
-	{
-		adjacencyMatrix.put(v, new HashMap<String, Boolean>());
-	}
-
+	
+	
 	public boolean containsVertex (String v)
 	{
 		if (adjacencyMatrix.get(v) !=null)
@@ -34,6 +30,23 @@ public class DirectedGraph {
 		{
 			return false;
 		}
+	}
+	
+	public boolean isDependency(String from, String to)
+	{
+		HashMap<String, Boolean> temp = adjacencyMatrix.get(from);
+		if (temp.get(to) == null)
+		{
+			return false;
+		}
+		else
+		{
+			return true;
+		}
+	}
+	public void addVertex(String v)
+	{
+		adjacencyMatrix.put(v, new HashMap<String, Boolean>());
 	}
 
 	public boolean addEdge(String from, String to)
@@ -94,14 +107,14 @@ public class DirectedGraph {
 						for (String team : adjacencyMatrix.keySet())
 						{
 							Set<String>keySet = adjacencyMatrix.get(team).keySet();
-//														if (keySet.size() <= numConnections && team.equals(node) == false && used.get(team) == null)
-//														{
-//															backTrack.push(team);
-//														}
-							if (keySet.size() ==0 && team.equals(node) == false && used.get(team) == null)
+							if (keySet.size() <= numConnections && team.equals(node) == false && used.get(team) == null)
 							{
 								backTrack.push(team);
 							}
+							//							if (keySet.size() ==0 && team.equals(node) == false && used.get(team) == null)
+							//							{
+							//								backTrack.push(team);
+							//							}
 						}
 						node = backTrack.pop();
 
@@ -150,7 +163,6 @@ public class DirectedGraph {
 			sorted.add(starter);
 		}
 		return sorted;
-		
 
 	}
 }
