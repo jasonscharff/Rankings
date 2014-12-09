@@ -10,6 +10,7 @@ import org.jgrapht.experimental.dag.DirectedAcyclicGraph.CycleFoundException;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleDirectedGraph;
 import org.jgrapht.graph.SimpleGraph;
+import org.jgrapht.traverse.TopologicalOrderIterator;
 public class rankingsMain 
 {
 	private final static String fileName = "rankings.txt";
@@ -18,14 +19,16 @@ public class rankingsMain
 	public static void main(String[] args) 
 	{
 		ArrayList<Object>fileResponses = readFile();
-		DirectedAcyclicGraph<String, DefaultEdge> graph = (DirectedAcyclicGraph<String, DefaultEdge>) fileResponses.get(0);
-		if (graph != null)
-		{
-			HashMap<String, Integer> winCount = (HashMap<String, Integer>) fileResponses.get(1);
-			HashMap<String, Integer> totalScore = (HashMap<String, Integer>) fileResponses.get(2);
-			ArrayList<String>rankings = fixTies(graph, winCount, totalScore);
-			System.out.println(rankings);
-		}
+		DirectedGraph g = (DirectedGraph) fileResponses.get(0);
+		System.out.println(g.topSort());
+		
+//		if (graph != null)
+//		{
+//			HashMap<String, Integer> winCount = (HashMap<String, Integer>) fileResponses.get(1);
+//			HashMap<String, Integer> totalScore = (HashMap<String, Integer>) fileResponses.get(2);
+//			ArrayList<String>rankings = fixTies(graph, winCount, totalScore);
+//			System.out.println(rankings);
+//		}
 		
 		
 	}
@@ -63,10 +66,10 @@ public class rankingsMain
 			finalList = addArrayContents(finalList, group);
 			
 		}
+		Collections.reverse(finalList);
 		return finalList;
+	
 	}
-	
-	
 	public static ArrayList<String> innerRank(ArrayList<String> teams, HashMap<String, Integer>totalScore)
 	{
 		ArrayList<teamNode> toSort = new ArrayList<teamNode>();
@@ -96,7 +99,7 @@ public class rankingsMain
 	public static ArrayList<Object> readFile()
 	{
 		Scanner s;
-		DirectedAcyclicGraph<String, DefaultEdge> graph = new DirectedAcyclicGraph<String,DefaultEdge>(DefaultEdge.class);
+		DirectedGraph graph = new DirectedGraph();
 		HashMap <String, Integer> totalScoreMap = new HashMap<String, Integer>();
 		HashMap <String, Integer> winCount = new HashMap<String, Integer>();
 		try 
@@ -129,29 +132,19 @@ public class rankingsMain
 				{
 					int currentCount = winCount.get(teamOne);
 					winCount.put(teamOne, currentCount + 1);
-					try 
-					{
-						graph.addDagEdge(teamTwo, teamOne);
-					}
+					
+					graph.addEdge(teamTwo, teamOne);
+	
 
-					catch (CycleFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+					
 				}
 				else if (firstNumber < secondNumber)
 				{
 					int currentCount = winCount.get(teamTwo);
 					winCount.put(teamTwo, currentCount + 1);
-					try 
-					{
-						graph.addDagEdge(teamOne, teamTwo);
-					}
+					graph.addEdge(teamOne, teamTwo);
 
-					catch (CycleFoundException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+
 				}
 				else
 				{
@@ -176,7 +169,7 @@ public class rankingsMain
 		{
 			System.out.println("File not found");
 			return null;
-		}
+		} 
 
 
 
