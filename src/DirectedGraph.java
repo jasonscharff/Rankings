@@ -4,8 +4,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Stack;
+
+import org.jgrapht.alg.CycleDetector;
 
 
 //Before popping, just check through x number excluding used.
@@ -13,13 +16,17 @@ import java.util.Stack;
 
 public class DirectedGraph {
 	HashMap<String, HashMap<String, Boolean>> adjacencyMatrix;
-
+	HashMap<String, Set<String>> superNodes;
 	public DirectedGraph()
 	{
 		adjacencyMatrix = new HashMap<String, HashMap<String, Boolean>>();
+		superNodes = new HashMap<String, Set<String>>();
 	}
 	
-	
+	public Set<String> getConnections(String teamName)
+	{
+		return adjacencyMatrix.get(teamName).keySet();
+	}
 	public boolean containsVertex (String v)
 	{
 		if (adjacencyMatrix.get(v) !=null)
@@ -30,6 +37,10 @@ public class DirectedGraph {
 		{
 			return false;
 		}
+	}
+	public Set<String>getVerticies()
+	{
+		return adjacencyMatrix.keySet();
 	}
 	
 	public boolean isDependency(String from, String to)
@@ -44,6 +55,7 @@ public class DirectedGraph {
 			return true;
 		}
 	}
+	
 	public void addVertex(String v)
 	{
 		adjacencyMatrix.put(v, new HashMap<String, Boolean>());
@@ -134,6 +146,7 @@ public class DirectedGraph {
 							break;
 						}
 					}
+					
 					if (hasConnection == false)
 					{
 						sorted.add(node);
@@ -165,6 +178,24 @@ public class DirectedGraph {
 		return sorted;
 
 	}
+	
+		public void adjustForCycles(CycleDetector detector)
+		{
+			for (String key : adjacencyMatrix.keySet())
+			{
+				Set<String> cycleSet = detector.findCyclesContainingVertex(key);
+				if (cycleSet.size() !=0)
+				{
+					String identifier = "Mega Node " + superNodes.keySet().size() + 1;
+					superNodes.put(identifier, cycleSet);
+					//Go through each and set everything that connects to contents of mega node as connecting to 
+					//the mega node instead of the individual. Go through and find everything it connects to besides a cyclical member
+					//and make the mega node connect to it. 
+					//Inner rank
+				}
+			}
+		}
+	
 }
 
 
