@@ -9,20 +9,25 @@ import java.util.Set;
 import java.util.Stack;
 
 import org.jgrapht.alg.CycleDetector;
-
-
-//Before popping, just check through x number excluding used.
-
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.graph.SimpleDirectedGraph;
 
 public class DirectedGraph {
 	HashMap<String, HashMap<String, Boolean>> adjacencyMatrix;
+	HashMap<String, HashMap<String, Boolean>> acyclicAdjacencyMatrix;
 	HashMap<String, Set<String>> superNodes;
-	public DirectedGraph()
+	SimpleDirectedGraph<String, DefaultEdge> jgraph;
+	ranking rankingMethod;
+
+	public DirectedGraph(ranking r)
 	{
 		adjacencyMatrix = new HashMap<String, HashMap<String, Boolean>>();
+		acyclicAdjacencyMatrix = new HashMap<String, HashMap<String, Boolean>>();
 		superNodes = new HashMap<String, Set<String>>();
+		jgraph = new SimpleDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+		rankingMethod = r;
 	}
-	
+
 	public Set<String> getConnections(String teamName)
 	{
 		return adjacencyMatrix.get(teamName).keySet();
@@ -42,7 +47,7 @@ public class DirectedGraph {
 	{
 		return adjacencyMatrix.keySet();
 	}
-	
+
 	public boolean isDependency(String from, String to)
 	{
 		HashMap<String, Boolean> temp = adjacencyMatrix.get(from);
@@ -55,10 +60,12 @@ public class DirectedGraph {
 			return true;
 		}
 	}
-	
+
 	public void addVertex(String v)
 	{
 		adjacencyMatrix.put(v, new HashMap<String, Boolean>());
+		acyclicAdjacencyMatrix.put(v, new HashMap<String, Boolean>());
+		jgraph.addVertex(v);
 	}
 
 	public boolean addEdge(String from, String to)
@@ -72,6 +79,8 @@ public class DirectedGraph {
 			HashMap<String, Boolean> temp = adjacencyMatrix.get(from);
 			temp.put(to, true);
 			adjacencyMatrix.put(from, temp);
+			acyclicAdjacencyMatrix.put(from,temp);
+			jgraph.addEdge(from, to);
 			return true;
 		}
 	}
@@ -87,7 +96,8 @@ public class DirectedGraph {
 	}
 	public List<String> topSort()
 	{
-		LinkedList<String> keys = setToLinkedList(adjacencyMatrix.keySet());
+		adjustForCycles();
+		LinkedList<String> keys = setToLinkedList(acyclicAdjacencyMatrix.keySet());
 		List<String> sorted = new LinkedList<String>();
 		Stack<String> backTrack = new Stack<String>();
 		HashMap<String, Boolean>used = new HashMap<String, Boolean>();
@@ -115,23 +125,19 @@ public class DirectedGraph {
 						{
 							break outerloop;
 						}
-						int numConnections = adjacencyMatrix.get(node).keySet().size(); 
-						for (String team : adjacencyMatrix.keySet())
+						int numConnections = acyclicAdjacencyMatrix.get(node).keySet().size(); 
+						for (String team : acyclicAdjacencyMatrix.keySet())
 						{
-							Set<String>keySet = adjacencyMatrix.get(team).keySet();
+							Set<String>keySet = acyclicAdjacencyMatrix.get(team).keySet();
 							if (keySet.size() <= numConnections && team.equals(node) == false && used.get(team) == null)
 							{
 								backTrack.push(team);
 							}
-							//							if (keySet.size() ==0 && team.equals(node) == false && used.get(team) == null)
-							//							{
-							//								backTrack.push(team);
-							//							}
 						}
 						node = backTrack.pop();
 
 					}
-					HashMap<String, Boolean> map = adjacencyMatrix.get(node);
+					HashMap<String, Boolean> map = acyclicAdjacencyMatrix.get(node);
 					boolean hasConnection = false;
 					for (String key : map.keySet())
 					{
@@ -146,7 +152,7 @@ public class DirectedGraph {
 							break;
 						}
 					}
-					
+
 					if (hasConnection == false)
 					{
 						sorted.add(node);
@@ -154,17 +160,15 @@ public class DirectedGraph {
 					}
 				}
 
-
-
 		}
 		Set<String>starters = new HashSet<String>();
-		for (String key: adjacencyMatrix.keySet())
+		for (String key: acyclicAdjacencyMatrix.keySet())
 		{
 			starters.add(key);
 		}
-		for (String key : adjacencyMatrix.keySet())
+		for (String key : acyclicAdjacencyMatrix.keySet())
 		{
-			HashMap<String, Boolean> temp = adjacencyMatrix.get(key);
+			HashMap<String, Boolean> temp = acyclicAdjacencyMatrix.get(key);
 			starters.removeAll(temp.keySet());
 		}
 		for (String starter : starters)
@@ -175,27 +179,126 @@ public class DirectedGraph {
 		{
 			sorted.add(starter);
 		}
-		return sorted;
+		return removeCycleGroupings(sorted);
 
 	}
-	
-		public void adjustForCycles(CycleDetector detector)
+
+	private List<String> removeCycleGroupings(List<String> list)
+	{
+		rankingMethod.adjustTotalsForWins(this);
+		List<String> toReturn = new ArrayList<String>();
+		List<String> group = new ArrayList<String>();
+		for (String element : list)
 		{
-			for (String key : adjacencyMatrix.keySet())
+			if (element.contains("Mega Node"))
 			{
-				Set<String> cycleSet = detector.findCyclesContainingVertex(key);
-				if (cycleSet.size() !=0)
+				if (group.size() > 1)
 				{
-					String identifier = "Mega Node " + superNodes.keySet().size() + 1;
-					superNodes.put(identifier, cycleSet);
-					//Go through each and set everything that connects to contents of mega node as connecting to 
-					//the mega node instead of the individual. Go through and find everything it connects to besides a cyclical member
-					//and make the mega node connect to it. 
-					//Inner rank
+					group = rankingMethod.fixTies(group);
+				}
+				toReturn.addAll(group);
+				group.clear();
+				List<String> items = new ArrayList<String>();
+				items.addAll(superNodes.get(element));
+				items = rankingMethod.fixTies(items);
+				for (String item : items)
+				{
+					toReturn.add(item);
 				}
 			}
+			else
+			{
+				group.add(element);
+			}
 		}
-	
+		if (group.size() > 1)
+		{
+			group = rankingMethod.fixTies(group);
+		}
+		toReturn.addAll(group);
+		return toReturn;
+	}
+
+	public void adjustForCycles()
+	{
+		SimpleDirectedGraph <String, DefaultEdge> clonedJgraph = (SimpleDirectedGraph<String, DefaultEdge>) jgraph.clone();
+		//Iterate through adjacnecny Matrix keyset
+		//Remove all inner portion connections, keep others. Have hashset of contents
+		whileLoop:
+			while (true)
+			{
+				CycleDetector<String, DefaultEdge> detector = new CycleDetector<String, DefaultEdge>(jgraph);
+				if (detector.detectCycles() == false)
+				{
+					break whileLoop;
+				}
+				Set<String> cycleSet = null;
+				forLoop:
+					for (String key : acyclicAdjacencyMatrix.keySet())
+					{
+						cycleSet = detector.findCyclesContainingVertex(key);
+						if (cycleSet.size()  > 0)
+						{
+							break forLoop;
+						}
+					}
+				addSuperNode(cycleSet);
+
+			}
+
+	}
+
+	private void addSuperNode(Set<String> nodes)
+	{
+		if (nodes == null)
+		{
+			return;
+		}
+		else
+		{
+			String identifier = "Mega Node " + (superNodes.keySet().size() + 1);
+			jgraph.addVertex(identifier);
+			superNodes.put(identifier, nodes);
+			for (String node : nodes)
+			{
+				HashMap<String, Boolean> temp = acyclicAdjacencyMatrix.get(node);
+				Iterator <String>connectionIterator = temp.keySet().iterator();
+				while (connectionIterator.hasNext())
+				{
+					String connection = connectionIterator.next();
+					if (nodes.contains(connection))
+					{
+						connectionIterator.remove();
+					}
+				}
+				HashMap<String, Boolean> currentConnections = acyclicAdjacencyMatrix.get(identifier);
+
+				if(currentConnections == null)
+				{
+					acyclicAdjacencyMatrix.put(identifier, temp);
+				}
+				else
+				{
+					for (String connection : temp.keySet())
+					{
+						currentConnections.put(connection, true);
+					}
+					acyclicAdjacencyMatrix.put(identifier, currentConnections);
+				}
+
+				acyclicAdjacencyMatrix.remove(node);
+				jgraph.removeVertex(node);
+			}
+
+			for (String megaConnection : acyclicAdjacencyMatrix.get(identifier).keySet())
+			{
+				jgraph.addEdge(identifier, megaConnection);
+			}
+		}
+
+	}
+
+
 }
 
 

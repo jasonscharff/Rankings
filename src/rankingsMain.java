@@ -1,3 +1,15 @@
+/******************************************************************************
+ * 
+ * Name:		Jason Scharff
+ * Block:		A
+ * Date:		12/11/14
+ * 
+ *  Program #3: Rankings
+ *  Description:
+ *  	This program ranks a dataset given a file using Topological sort. It deals with four
+ *  	separate cases: a directed.
+ *      
+ ******************************************************************************/
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,30 +26,25 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleDirectedGraph;
 import org.jgrapht.graph.SimpleGraph;
 import org.jgrapht.traverse.TopologicalOrderIterator;
-public class rankingsMain 
+public class rankingsMain implements ranking
 {
-	private final static String fileName = "rankings2.txt";
+	private final static String fileName = "rankings.txt";
 	private final static int distanceBetweenTeams = 4;
+	private static Map<String, Integer> winCount;
+	private static Map<String, Integer> totalScore;
 
 	public static void main(String[] args) 
 	{
 		Map<String, Object>fileResponses = readFile();
-		DirectedGraph graph = (DirectedGraph) fileResponses.get("customGraph");
-		SimpleDirectedGraph<String, DefaultEdge> jgraph = (SimpleDirectedGraph<String, DefaultEdge>) fileResponses.get("jgraph");
-		CycleDetector cycleFinder = new CycleDetector(jgraph);
-		graph.adjustForCycles(cycleFinder);
-		Map<String, Integer> totalScore = adjustTotalsForWins(graph, (HashMap<String, Integer>) fileResponses.get("score"));
+		DirectedGraph graph = (DirectedGraph) fileResponses.get("graph");
+		totalScore = (HashMap<String, Integer>) fileResponses.get("score");
+		winCount = (Map<String, Integer>)fileResponses.get("wins");
 		List<String> sortedGraph = graph.topSort();
 		System.out.println(sortedGraph);
-		sortedGraph = fixTies(sortedGraph, (Map<String, Integer>)fileResponses.get("wins"), totalScore);
-		System.out.println(sortedGraph);
-		
-		
 		
 	}
 
-	
-	public static Map<String, Integer>adjustTotalsForWins(DirectedGraph graph, HashMap<String, Integer> totalScore)
+	public void adjustTotalsForWins(DirectedGraph graph)
 	{
 		for (String team : graph.getVerticies())
 		{
@@ -51,13 +58,13 @@ public class rankingsMain
 				}
 			}
 		}
-		return totalScore;
+	
 	}
 		
-	public static ArrayList<String> fixTies (List<String> topSorted, Map<String, Integer> winCount, Map<String, Integer> totalScore)
+	public ArrayList<String> fixTies (List<String> presorted)
 	{
 		ArrayList<String> finalList = new ArrayList<String>();
-		Iterator<String> it = topSorted.iterator();
+		Iterator<String> it = presorted.iterator();
 		String next = it.next();
 		while (it.hasNext())
 		{
@@ -107,10 +114,6 @@ public class rankingsMain
 		return toReturn;
 	}
 	
-	public static void sort(List<String> toSort)
-	{
-		
-	}
 	
 	public static ArrayList<String> addArrayContents(ArrayList<String> firstArray, ArrayList<String> secondArray)
 	{
@@ -124,8 +127,7 @@ public class rankingsMain
 	public static Map<String, Object> readFile()
 	{
 		Scanner s;
-		DirectedGraph graph = new DirectedGraph();
-		SimpleDirectedGraph<String, DefaultEdge> jgraph = new SimpleDirectedGraph<String, DefaultEdge>(DefaultEdge.class);
+		DirectedGraph graph = new DirectedGraph(new rankingsMain());
 		HashMap <String, Integer> totalScoreMap = new HashMap<String, Integer>();
 		HashMap <String, Integer> winCount = new HashMap<String, Integer>();
 		try 
@@ -146,14 +148,12 @@ public class rankingsMain
 					totalScoreMap.put(teamOne, 0);
 					winCount.put(teamOne, 0);
 					graph.addVertex(teamOne);
-					jgraph.addVertex(teamOne);
 				}
 				if (graph.containsVertex(teamTwo) == false)
 				{
 					totalScoreMap.put(teamTwo, 0);
 					winCount.put(teamTwo, 0);
 					graph.addVertex(teamTwo);
-					jgraph.addVertex(teamTwo);
 				}
 
 				if(firstNumber > secondNumber)
@@ -161,14 +161,12 @@ public class rankingsMain
 					int currentCount = winCount.get(teamOne);
 					winCount.put(teamOne, currentCount + 1);
 					graph.addEdge(teamTwo, teamOne);
-					jgraph.addEdge(teamTwo, teamOne);
 				}
 				else if (firstNumber < secondNumber)
 				{
 					int currentCount = winCount.get(teamTwo);
 					winCount.put(teamTwo, currentCount + 1);
 					graph.addEdge(teamOne, teamTwo);
-					jgraph.addEdge(teamOne, teamTwo);
 				}
 				else
 				{
@@ -184,8 +182,7 @@ public class rankingsMain
 
 			s.close();
 			Map<String, Object> toReturn = new HashMap<String, Object>();
-			toReturn.put("customGraph", graph);
-			toReturn.put("jgraph", jgraph);
+			toReturn.put("graph", graph);
 			toReturn.put("wins", winCount);
 			toReturn.put("score", totalScoreMap);
 			return toReturn;
@@ -195,9 +192,6 @@ public class rankingsMain
 			System.out.println("File not found");
 			return null;
 		} 
-
-
-
 
 	}
 }
