@@ -29,7 +29,7 @@ import java.io.*;
 public class RankingsMain implements Ranking
 {
 	//Final variables
-	private final static String fileName = "sampleCyclic.txt";
+	private final static String FILE_NAME = "drawnset.txt";
 	private final static int DISTANCE_BETWEEN_TEAMS = 4;
 	/*Class scopes are used because the DirectedGraph class
 	 * calls the tie breaking methods (which the two Maps below
@@ -168,7 +168,7 @@ public class RankingsMain implements Ranking
 		HashMap <String, Integer> winCount = new HashMap<String, Integer>();
 		try 
 		{
-			s = new Scanner(new BufferedReader(new FileReader(fileName)));
+			s = new Scanner(new BufferedReader(new FileReader(FILE_NAME)));
 			while(s.hasNext())
 			{
 				String line = s.nextLine();

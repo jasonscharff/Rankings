@@ -34,7 +34,7 @@ public class DirectedGraph {
 	SimpleDirectedGraph<String, DefaultEdge> jgraph;
 	SimpleDirectedGraph<String, DefaultEdge> acyclicJGraph;
 	Ranking rankingMethod;
-	
+
 	/**
 	 * Constructor method initializes all of the Maps, and the JGraphT graph. As well, takes
 	 * parameter of Ranking and stores it so the appropriate tie breaking methods can be called
@@ -59,7 +59,7 @@ public class DirectedGraph {
 	{
 		return adjacencyMatrix.get(teamName).keySet();
 	}
-	
+
 	/**
 	 * Returns true
 	 * @param v		A string that the client is attemtping to determine if it's in the graph or not.
@@ -76,7 +76,7 @@ public class DirectedGraph {
 			return false;
 		}
 	}
-	
+
 	/**
 	 * Returns a list of all vertices in the graph
 	 * @return	All vertices in the graph
@@ -156,7 +156,7 @@ public class DirectedGraph {
 		}
 		return asList;
 	}
-	
+
 	/**
 	 * This method uses a modified form of Topological Sort to sort the graph.
 	 * The first thing it does is adjust any cycles to be larger "super" nodes
@@ -181,12 +181,13 @@ public class DirectedGraph {
 		HashMap<String, Boolean>used = new HashMap<String, Boolean>();
 		Iterator<String> it = keys.iterator();
 		//Iterate through each vertex
+		boolean toContinue = true;
 		while (it.hasNext())
 		{
 			String node = it.next();
 			if (used.get(node) != null)
 			{
-				continue;
+				toContinue = false;
 			}
 			else
 			{
@@ -196,57 +197,71 @@ public class DirectedGraph {
 					backTrack.push(node);
 				}
 			}
-			outerloop:
-				while(backTrack.isEmpty() == false)
+			if (toContinue == true)
+			{
+				boolean continueLoop = true;
+				while(continueLoop == true && backTrack.isEmpty() == false)
 				{
-					while(used.get(node) != null)
+					while(continueLoop == true && used.get(node) != null)
 					{
 						if(backTrack.isEmpty() == true)
 						{
-							break outerloop;
+							continueLoop = false;
 						}
-						//Add all vertices of equal status.
-						int numConnections = acyclicAdjacencyMatrix.get(node).keySet().size(); 
-						for (String team : acyclicAdjacencyMatrix.keySet())
+						else
 						{
-							Set<String>keySet = acyclicAdjacencyMatrix.get(team).keySet();
-							if (keySet.size() <= numConnections && team.equals(node) == false && used.get(team) == null)
+							//Add all vertices of equal status.
+							int numConnections = acyclicAdjacencyMatrix.get(node).keySet().size(); 
+							for (String team : acyclicAdjacencyMatrix.keySet())
 							{
-								backTrack.push(team);
+								Set<String>keySet = acyclicAdjacencyMatrix.get(team).keySet();
+								if (keySet.size() <= numConnections && team.equals(node) == false && used.get(team) == null)
+								{
+									backTrack.push(team);
+								}
 							}
+							node = backTrack.pop();
 						}
-						node = backTrack.pop();
+
 
 					}
-					//Continue down path if possible
-					HashMap<String, Boolean> map = acyclicAdjacencyMatrix.get(node);
-					boolean hasConnection = false;
-					for (String key : map.keySet())
+					if(continueLoop == true)
 					{
-						if (used.get(key) == null)
+						//Continue down path if possible
+						HashMap<String, Boolean> map = acyclicAdjacencyMatrix.get(node);
+						boolean hasConnection = false;
+						for (String key : map.keySet())
 						{
-							hasConnection = true;
-							if(backTrack.isEmpty() == true || backTrack.peek().equals(node) == false)
+							if (used.get(key) == null)
 							{
-								backTrack.push(node);
+								hasConnection = true;
+								if(backTrack.isEmpty() == true || backTrack.peek().equals(node) == false)
+								{
+									backTrack.push(node);
+								}
+								node = key;
+								//The break statement is used because there is no convenient way to exit a 
+								//for loop and the for each loop makes it much clearer that I'm iterating through a set
+								break;
 							}
-							node = key;
-							break;
+						}
+						//Finish with vertex
+						if (hasConnection == false)
+						{
+							sorted.add(node);
+							used.put(node, true);
 						}
 					}
-					//Finish with vertex
-					if (hasConnection == false)
-					{
-						sorted.add(node);
-						used.put(node, true);
-					}
+
 				}
+			}
+
 		}
 		sorted = moveEntryPoints(sorted);
 		resetAcyclicVersions();
 		return removeCycleGroupingsAndFixTies(sorted);
 	}
-	
+
 	/**
 	 * This method fixes a flaw in the initial topological sort algorithm where the
 	 * entry points don't necessarily start the List. It goes through and moves them to the front
@@ -276,7 +291,7 @@ public class DirectedGraph {
 		}
 		return sorted;
 	}
-	
+
 	/**
 	 * This method removes any "super node" groupings that used to be cycles
 	 * and sorts them based off of the given tie breaking criteria. Even
@@ -328,27 +343,30 @@ public class DirectedGraph {
 	 */
 	public void adjustForCycles()
 	{
-		whileLoop:
-			while (true)
+		boolean continueLoop = true;
+		while (continueLoop == true)
+		{
+			CycleDetector<String, DefaultEdge> detector = new CycleDetector<String, DefaultEdge>(acyclicJGraph);
+			if (detector.detectCycles() == false)
 			{
-				CycleDetector<String, DefaultEdge> detector = new CycleDetector<String, DefaultEdge>(acyclicJGraph);
-				if (detector.detectCycles() == false)
-				{
-					break whileLoop;
-				}
-				Set<String> cycleSet = null;
-				forLoop:
-					for (String key : acyclicAdjacencyMatrix.keySet())
-					{
-						cycleSet = detector.findCyclesContainingVertex(key);
-						if (cycleSet.size()  > 0)
-						{
-							break forLoop;
-						}
-					}
-				addSuperNode(cycleSet);
-
+				continueLoop = false;
 			}
+			if (continueLoop == true)
+			{
+				Set<String> cycleSet = null;
+				for (String key : acyclicAdjacencyMatrix.keySet())
+				{
+					cycleSet = detector.findCyclesContainingVertex(key);
+					if (cycleSet.size()  > 0)
+					{
+						//The break statement is used because there is no convenient way to exit a 
+						//for loop and the for each loop makes it much clearer that I'm iterating through a set
+						break;
+					}
+				}
+				addSuperNode(cycleSet);
+			}
+		}
 
 	}
 
@@ -414,9 +432,9 @@ public class DirectedGraph {
 	{
 		acyclicAdjacencyMatrix = (HashMap<String, HashMap<String, Boolean>>) adjacencyMatrix.clone();
 		acyclicJGraph = (SimpleDirectedGraph<String, DefaultEdge>) jgraph.clone();
-		
+
 	}
-	
+
 }
 
 
